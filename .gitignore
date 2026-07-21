@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+foggy_vector_db/
+siglip2_local/
+*.pth
+*.npy
+.env
