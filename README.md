@@ -36,14 +36,18 @@ graph TD
     H --> I[Qwen2.5-VL Vision-Language Core]
     I --> J[Farmer Actionable Response]
 
-🚀 Development Journey & Milestones
+---
+
+### 🚀 Development Journey & Milestones
 🟢 Phase 1: Baseline Architecture & Vision ProfilingArchitecture Selection: Evaluated lightweight vision backends for edge-constrained environments.Feature Pipeline: Standardized dense vector embeddings for micro-scale insect analysis.Lifecycle Mapping: Target classification across 5 critical growth stages:Eggs: Batch oviposition mass detection.Early Larvae: 1st–2nd instar micro-larvae management.Feeding Larvae: 3rd–5th instar heavy waste-conversion phase.Pupae / Pre-pupae: Non-feeding harvest & breeding stage.Adult BSF: Mating chamber environment monitoring.
 🟡 Phase 2: SigLIP 2 Upgrade & Mahalanobis Safety DefenseBackbone Shift: Transitioned feature extraction to SigLIP 2, unlocking fine-grained embedding resolution suited for sub-centimeter targets.Classifier Performance: Trained a PyTorch classification head achieving 98.41% accuracy across cross-validation splits.OOD Protection: Implemented empirical Mahalanobis Distance thresholding. Off-target imagery (e.g., household items, non-BSF pests) is intercepted prior to VLM invocation, preserving compute and preventing hallucinations.
 🔵 Phase 3: Multi-Modal Fusion & Local RAG IntegrationUnified Pipeline: Coupled SigLIP 2 embeddings, OOD safety defenses, PyTorch stage classification, and local vector retrieval into a consolidated engine (core/foggy_engine_qwen.py).Grounded RAG: Indexed BSF technical literature to supply grounded context on feed formulation, moisture control (60–70%), and temperature management.Project Refactoring: Structured the repository into modular packages (core/, models/, data/, legacy_gemma/), isolating execution logic from large model binaries.
-📊 Core Performance Metrics
-MetricBenchmark ResultTarget ComponentStage Classification Accuracy98.41%PyTorch Classifier HeadVision Embedding Resolution1152-dim Dense VectorsSigLIP 2 BackboneSafety Defense TypeMahalanobis DistanceOut-of-Distribution (OOD) GuardDomain GroundingLocal Vector DatabaseBSF Technical RAG Docs📂 Repository Directory Structure
 
-📂 Repository Directory Structure
+### 📊 Core Performance Metrics
+MetricBenchmark ResultTarget ComponentStage Classification Accuracy98.41%PyTorch Classifier HeadVision Embedding Resolution1152-dim Dense VectorsSigLIP 2 BackboneSafety Defense TypeMahalanobis DistanceOut-of-Distribution (OOD) GuardDomain GroundingLocal Vector DatabaseBSF Technical RAG Docs📂 Repository Directory Structure
+---
+
+## 📂 Repository Directory Structure
 
 Foggy-ai-bsf-application/
 ├── core/                        # Active Core Engine & Pipeline Logic
