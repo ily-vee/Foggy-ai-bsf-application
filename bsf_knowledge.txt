@@ -1,6 +1,0 @@
-[BLACK SOLDIER FLY LARVAE OPERATIONAL METRICS]
-- Optimal Rearing Temperature: 27°C to 30°C. Development slows drastically below 20°C or above 35°C.
-- Optimal Relative Humidity: 60% to 90%.
-- Larvae Feed Moisture Content: The feed substrate must maintain a moisture level of 60% to 70%. If the feed is dusty or dry, add water. If it is soup-like or waterlogged, add dry wheat bran or sawdust to prevent larvae suffocation.
-- Feeding Rate: 100mg to 200mg of organic waste per larva per day.
-- Overfeeding Signs: Foul ammonia odor, substrate turning into an anaerobic slime, or larvae trying to crawl out of the bin prematurely.

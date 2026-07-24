@@ -1,0 +1,128 @@
+=== BSF MULTIMODAL PROFILING REPORT - 2026-07-13 10:53:08.630284 ===
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\1_eggs\bsf_eggs.jpeg (2).jpeg
+EXPECTED LABELED STAGE: 1_eggs
+ANALYSIS TIME: 2026-07-13 10:56:11.116678
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\1_eggs\bsf_eggs.jpeg.jpeg
+EXPECTED LABELED STAGE: 1_eggs
+ANALYSIS TIME: 2026-07-13 10:59:13.906606
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\2_early_larvae\early_larvae1.jpeg.jpeg
+EXPECTED LABELED STAGE: 2_early_larvae
+ANALYSIS TIME: 2026-07-13 11:02:16.751213
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\2_early_larvae\early_larvae2.jpeg.jpeg
+EXPECTED LABELED STAGE: 2_early_larvae
+ANALYSIS TIME: 2026-07-13 11:05:19.193653
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\2_early_larvae\early_larvae3.jpeg.jpeg
+EXPECTED LABELED STAGE: 2_early_larvae
+ANALYSIS TIME: 2026-07-13 11:08:21.897464
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\3_feeding_larvae\feeding_larvae1.jpeg.jpeg
+EXPECTED LABELED STAGE: 3_feeding_larvae
+ANALYSIS TIME: 2026-07-13 11:11:24.755552
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\3_feeding_larvae\feeding_larvae2.jpeg.jpeg
+EXPECTED LABELED STAGE: 3_feeding_larvae
+ANALYSIS TIME: 2026-07-13 11:14:29.370368
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\3_feeding_larvae\feeding_larvae3.jpeg.jpeg
+EXPECTED LABELED STAGE: 3_feeding_larvae
+ANALYSIS TIME: 2026-07-13 11:17:33.586130
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\3_feeding_larvae\feeding_larvae4.jpeg.jpeg
+EXPECTED LABELED STAGE: 3_feeding_larvae
+ANALYSIS TIME: 2026-07-13 11:20:37.566282
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\3_feeding_larvae\feeding_larvae5.jpeg.jpeg
+EXPECTED LABELED STAGE: 3_feeding_larvae
+ANALYSIS TIME: 2026-07-13 11:23:40.428119
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\4_pupae\pupae1.jpeg.jpeg
+EXPECTED LABELED STAGE: 4_pupae
+ANALYSIS TIME: 2026-07-13 11:26:42.806274
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\4_pupae\pupae2.jpeg.jpeg
+EXPECTED LABELED STAGE: 4_pupae
+ANALYSIS TIME: 2026-07-13 11:29:45.583466
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\4_pupae\pupae3.jpeg.jpeg
+EXPECTED LABELED STAGE: 4_pupae
+ANALYSIS TIME: 2026-07-13 11:32:48.614251
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\4_pupae\pupae4.jpeg.jpeg
+EXPECTED LABELED STAGE: 4_pupae
+ANALYSIS TIME: 2026-07-13 11:35:51.139654
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\4_pupae\pupae5.jpeg.jpeg
+EXPECTED LABELED STAGE: 4_pupae
+ANALYSIS TIME: 2026-07-13 11:38:53.486028
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\5_bsf_adult\adult1.jpeg.jpeg
+EXPECTED LABELED STAGE: 5_bsf_adult
+ANALYSIS TIME: 2026-07-13 11:41:55.947780
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\5_bsf_adult\adult2.jpeg.jpeg
+EXPECTED LABELED STAGE: 5_bsf_adult
+ANALYSIS TIME: 2026-07-13 11:44:58.595915
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
+--------------------------------------------------
+IMAGE PATH: bsf_images_dataset\5_bsf_adult\adult3.jpeg.jpeg
+EXPECTED LABELED STAGE: 5_bsf_adult
+ANALYSIS TIME: 2026-07-13 11:48:02.039801
+--------------------------------------------------
+Pipeline connection failure: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=180)
+
