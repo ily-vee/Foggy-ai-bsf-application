@@ -1,7 +1,7 @@
 import time
 import ollama
 
-print("🌱 Foggy BSF Core Controller")
+print("🌱 Foggy BSF Core Controller") 
 print("Enforcing 2048 Context Truncation to save CPU cycles...\n")
 
 # Minimal system prompt initialization

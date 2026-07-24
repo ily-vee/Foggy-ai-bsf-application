@@ -5,3 +5,12 @@ siglip2_local/
 *.pth
 *.npy
 .env
+
+.idea/
+.vscode/
+__pycache__/
+bin/
+dataset/
+*.dll
+*.exe
+*.gguf

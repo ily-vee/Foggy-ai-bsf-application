@@ -14,7 +14,7 @@ logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-print("🌱 Foggy BSF Assistant (Gemma 3 4B - Real-Time Streaming Mode)")
+print("🌱 Foggy BSF Assistant (Qwen 2.5 3B - Local RAG Mode)")
 print("Type 'exit' to quit\n")
 
 # 1. Initialize local embedding weights for quick user queries
@@ -71,6 +71,7 @@ while True:
     sys.stdout.flush()
 
     payload = {
+        "model": "Qwen2.5-3B-Instruct",
         "messages": active_payload_messages,
         "temperature": 0.3,
         "stream": True,
@@ -82,23 +83,38 @@ while True:
         full_reply = ""
 
         for line in response.iter_lines():
-            if line:
-                decoded_line = line.decode('utf-8').lstrip('data: ')
-                if decoded_line.strip() == "[DONE]":
-                    break
-                try:
-                    chunk_json = json.loads(decoded_line)
-                    delta_content = chunk_json['choices'][0]['delta'].get('content') or ''
-                    sys.stdout.write(delta_content)
-                    sys.stdout.flush()
-                    full_reply += delta_content
-                except json.JSONDecodeError:
-                    continue
-        print("\n")
+            if not line:
+                continue
+                
+            line_str = line.decode('utf-8').strip()
+            
+            # Filter out non-data SSE lines
+            if not line_str.startswith("data:"):
+                continue
+
+            # Strip the prefix 'data: '
+            decoded_line = line_str[5:].strip()
+
+            if decoded_line == "[DONE]":
+                break
+
+            try:
+                chunk_json = json.loads(decoded_line)
+                choices = chunk_json.get('choices', [])
+                if choices:
+                    delta_content = choices[0].get('delta', {}).get('content', '')
+                    if delta_content:
+                        sys.stdout.write(delta_content)
+                        sys.stdout.flush()
+                        full_reply += delta_content
+            except json.JSONDecodeError:
+                continue
+
+        print("\n\n")
 
         conversation.append({"role": "user", "content": user_input})
         conversation.append({"role": "assistant", "content": full_reply})
 
     except requests.exceptions.ConnectionError:
-        print("\n❌ Error: Could not connect to the local inference server. Check port 8080.")
+        print("\n❌ Error: Could not connect to llama-server. Ensure it is running on port 8080.\n")
         break
