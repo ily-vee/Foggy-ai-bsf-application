@@ -1,0 +1,402 @@
+[
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs1.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs10.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs11.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs12.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs13.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs14.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs2.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs3.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs4.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs5.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs6.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs7.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs8.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/1_eggs/eggs9.jpeg",
+        "label_name": "1_eggs",
+        "label_id": 0
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae1.jpeg.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae10.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae11.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae12.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae13.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae14.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae15.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae2.jpeg.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae3.jpeg.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae4.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae5.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae6.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae7.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae8.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/2_early_larvae/early_larvae9.jpeg",
+        "label_name": "2_early_larvae",
+        "label_id": 1
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae1.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae10.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae11.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae12.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae13.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae14.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae15.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae16.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae17.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae18.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae19.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae2.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae20.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae21.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae22.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae3.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae4.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae5.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae6.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae7.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae8.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/3_feeding_larvae/feeding_larvae9.jpeg",
+        "label_name": "3_feeding_larvae",
+        "label_id": 2
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae1.jpeg.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae10.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae11.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae12.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae2.jpeg.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae3.jpeg.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae4.jpeg.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae5.jpeg.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae6.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae7.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae8.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/4_pupae/pupae9.jpeg",
+        "label_name": "4_pupae",
+        "label_id": 3
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult1.jpeg.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult10.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult11.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult12.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult13.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult14.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult15.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult16.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult17.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult2.jpeg.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult3.jpeg.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult4.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult5.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult6.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult7.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult8.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    },
+    {
+        "image_path": "dataset/bsf_images_dataset/5_bsf_adult/adult9.jpeg",
+        "label_name": "5_bsf_adult",
+        "label_id": 4
+    }
+]
