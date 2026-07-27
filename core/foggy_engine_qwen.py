@@ -1,307 +1,409 @@
-"""
-foggy_engine_qwen.py
-Unified Foggy AI Engine combining SigLIP 2 feature extraction, Mahalanobis OOD detection,
-Vector RAG retrieval, and conversation history streaming.
-"""
-
 import os
 import re
-import json
 import sys
-import pickle
+import time
+import json
 import torch
+import joblib
 import numpy as np
+from pathlib import Path
+from PIL import Image
 from threading import Thread
-from sentence_transformers import SentenceTransformer
-from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration, TextIteratorStreamer
 
-from preprocess import preprocess_and_embed, PhotoValidationError
-from train_kfold import BSFClassifierHead
+# ----------------------------------------------------
+# Dynamic Path Resolution
+# ----------------------------------------------------
+CORE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CORE_DIR.parent
 
-# ==========================================
-# CONFIGURATION & PATHS
-# ==========================================
-CACHE_DIR = "foggy_vector_db"
-CHUNKS_PATH = os.path.join(CACHE_DIR, "chunks.json")
-VECTORS_PATH = os.path.join(CACHE_DIR, "embeddings.npy")
+for path in [PROJECT_ROOT, CORE_DIR / "finetune"]:
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
-CLASSIFIER_PATH = "classifier_head.pt"
-OOD_PATH = "bsf_ood_detector.pkl"
-VISION_MODEL_ID = "Qwen/Qwen2.5-VL-3B-Instruct"
+from model_siglip import SiglipBSFClassifier
+from core.rag.retriever import HybridRetriever
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+from transformers import (
+    SiglipImageProcessor,
+    AutoProcessor,
+    Qwen2_5_VLForConditionalGeneration,
+    BitsAndBytesConfig,
+    TextIteratorStreamer
+)
+from transformers import StoppingCriteria, StoppingCriteriaList
+from peft import PeftModel
 
-STAGE_DISPLAY_MAP = {
-    "1_eggs": {
-        "title": "Egg Stage (Egg Clutches)",
-        "desc": "Keep incubation area moist (60–70%) and sheltered from direct sunlight. Ensure hatchlings have immediate access to soft feed substrate."
-    },
-    "2_early_larvae": {
-        "title": "Early Larvae (Neonates / Young Instars)",
-        "desc": "Requires easily digestible, finely ground substrate with 65–70% moisture. Maintain temperatures around 27°C–30°C."
-    },
-    "3_feeding_larvae": {
-        "title": "Active Feeding Larvae (3rd - 5th Instar)",
-        "desc": "Peak waste processing phase! Feed kitchen waste, fruit peels, or brewer's waste. Keep substrate temperature below 38°C."
-    },
-    "4_pupae": {
-        "title": "Prepupae / Pupae Stage",
-        "desc": "Feeding has stopped; larvae seek dry ground to pupate. Provide clean, dry, dark crawl-off areas (e.g., dry sawdust)."
-    },
-    "5_bsf_adult": {
-        "title": "Adult Fly Stage (Love Cages / Breeding)",
-        "desc": "Adults require bright sunlight/LEDs (350–450 nm) and clean water misting. They do not eat waste—focus on mating humidity and egg traps."
-    }
-}
+# Model & Adapter Paths
+SIGLIP_MODEL_ID = "google/siglip-base-patch16-224"
+QWEN_MODEL_ID = "Qwen/Qwen2.5-VL-3B-Instruct"
 
-# ==========================================
-# 1. VECTOR RAG RETRIEVAL ENGINE
-# ==========================================
-print("📚 Connecting Text Embedding Model for RAG...")
-embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+LORA_VISION_DIR = Path("models/siglip_bsf_lora")
+OOD_PATH = Path("models/bsf_ood_detector.pkl")
+LORA_QWEN_DIR = Path("models/qwen_bsf_qlora")
 
-if os.path.exists(CHUNKS_PATH) and os.path.exists(VECTORS_PATH):
-    with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
-        all_chunks = json.load(f)
-    chunk_embeddings = np.load(VECTORS_PATH)
-    print(f"✅ Vector Database Loaded ({len(all_chunks)} knowledge nodes).")
-else:
-    all_chunks = [
-        "Optimal temperature range for Black Soldier Fly (BSF) larvae development is 27°C to 30°C.",
-        "Feeding larvae require high moisture (60-70%) and nutrient-rich organic waste.",
-        "Adult flies require clean water misting and direct sunlight or 6000K LED lighting for optimal mating.",
-        "Prepupae migrate away from high moisture toward dry, dark areas to pupate."
-    ]
-    chunk_embeddings = embed_model.encode(all_chunks, convert_to_numpy=True)
-    print("⚠️ Warning: Vector DB files not found on disk. Initialized fallback memory.")
-
-def retrieve_relevant_context(user_query: str, top_k: int = 3) -> str:
-    """Computes cosine similarity against local vector embeddings and retrieves context."""
-    if not user_query.strip():
-        return ""
-    query_vec = embed_model.encode([user_query], convert_to_numpy=True)
-    
-    # Normalize for cosine similarity
-    query_norm = query_vec / (np.linalg.norm(query_vec, axis=1, keepdims=True) + 1e-10)
-    db_norm = chunk_embeddings / (np.linalg.norm(chunk_embeddings, axis=1, keepdims=True) + 1e-10)
-    
-    scores = np.dot(db_norm, query_norm.T).flatten()
-    top_indices = np.argsort(scores)[::-1][:top_k]
-    return "\n\n".join([all_chunks[idx] for idx in top_indices])
+VECTOR_DB_DIR = Path("foggy_vector_db")
+CLASSES = ["1_eggs", "2_early_larvae", "3_feeding_larvae", "4_pupae", "5_adult_bsf"]
 
 
-# ==========================================
-# 2. MULTIMODAL FOGGY ENGINE CORE
-# ==========================================
-class FoggyBSFEngine:
-    def __init__(self, max_history_turns: int = 10):
-        self.device = DEVICE
-        self.max_history_turns = max_history_turns
-        self.history = []
+class FoggyBrainEngine:
+    def __init__(self):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"⚙️ Booting Unified Foggy Brain Core on {self.device}...")
 
-        # Load PyTorch Classifier Head
-        print("🧠 Loading BSF Classifier Head & OOD Detector...")
-        checkpoint = torch.load(CLASSIFIER_PATH, map_location=self.device)
-        self.class_to_idx = checkpoint["class_to_idx"]
-        self.idx_to_class = checkpoint["idx_to_class"]
+        # 1. Load Local Hybrid RAG Retriever (BM25 + Dense Vectors)
+        self.retriever = HybridRetriever(vector_db_dir=VECTOR_DB_DIR)
+        print(f"✅ Hybrid RAG Engine Connected ({len(self.retriever.chunks)} total knowledge nodes).")
 
-        self.classifier = BSFClassifierHead(input_dim=768, num_classes=len(self.class_to_idx)).to(self.device)
-        self.classifier.load_state_dict(checkpoint["state_dict"])
-        self.classifier.eval()
+        # 2. Load Fine-Tuned SigLIP Vision Classifier
+        local_siglip = Path("siglip2_local")
+        if local_siglip.exists():
+            self.siglip_processor = SiglipImageProcessor.from_pretrained(str(local_siglip))
+        else:
+            self.siglip_processor = SiglipImageProcessor.from_pretrained(SIGLIP_MODEL_ID)
 
-        # Load Mahalanobis OOD Parameters
-        with open(OOD_PATH, "rb") as f:
-            self.ood_data = pickle.load(f)
+        self.vision_model = SiglipBSFClassifier(num_classes=5)
+        adapter_path = LORA_VISION_DIR / "vision_adapter"
+        head_path = LORA_VISION_DIR / "classifier_head.pt"
 
-        # Load Qwen LLM for Streaming Chat
-        print(f"👁️ Initializing Qwen VL LLM Core on {self.device}...")
-        self.processor = AutoProcessor.from_pretrained(VISION_MODEL_ID)
-        self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            VISION_MODEL_ID,
-            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-            device_map=self.device
+        if adapter_path.exists():
+            self.vision_model.backbone.load_adapter(str(adapter_path), adapter_name="default")
+        if head_path.exists():
+            self.vision_model.classifier.load_state_dict(torch.load(head_path, map_location=self.device))
+
+        self.vision_model.to(self.device)
+        self.vision_model.eval()
+
+        # 3. Load Recalibrated OOD Detector
+        if OOD_PATH.exists():
+            self.ood_detector = joblib.load(OOD_PATH)
+            print("✅ Recalibrated OOD Detector loaded successfully.")
+        else:
+            self.ood_detector = None
+            print("⚠️ Warning: OOD detector pickle not found.")
+
+        # 4. Load Qwen2.5-VL with QLoRA Adapter
+        print("🧠 Loading 4-bit Qwen2.5-VL Multi-Modal LLM Core...")
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+            bnb_4bit_use_double_quant=True
         )
-        print("⚡ Unified Foggy Engine fully initialized!")
 
-    def _compute_min_mahalanobis_distance(self, embedding_np: np.ndarray) -> float:
-        inv_cov = self.ood_data["inv_cov"]
-        class_means = self.ood_data["class_means"]
-        distances = []
-        for mean in class_means.values():
-            delta = embedding_np - mean
-            dist = float(np.sqrt(np.dot(np.dot(delta, inv_cov), delta)))
-            distances.append(dist)
-        return min(distances)
+        base_qwen = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            QWEN_MODEL_ID,
+            quantization_config=bnb_config,
+            device_map="auto",
+            torch_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        )
 
-    def analyze_image(self, image_path: str) -> dict:
-        """Processes image through SigLIP 2, performs OOD check, and predicts life stage."""
-        try:
-            raw_emb = preprocess_and_embed(image_path)
-        except PhotoValidationError as e:
-            return {"status": "error", "message": f"Validation failed: {str(e)}"}
+        if LORA_QWEN_DIR.exists():
+            self.qwen_model = PeftModel.from_pretrained(base_qwen, str(LORA_QWEN_DIR))
+            print("✅ Fine-tuned Qwen2.5-VL QLoRA adapter attached.")
+        else:
+            self.qwen_model = base_qwen
 
-        norm_emb = raw_emb / raw_emb.norm(dim=-1, keepdim=True)
-        emb_np = norm_emb.squeeze().numpy()
+        self.qwen_processor = AutoProcessor.from_pretrained(QWEN_MODEL_ID)
+        print("✅ Foggy Brain Engine initialization complete!\n")
 
-        # OOD Mahalanobis Check
-        min_distance = self._compute_min_mahalanobis_distance(emb_np)
-        threshold = self.ood_data["threshold"]
+    def retrieve_rag_context(self, user_query, top_k=5):
+        """Fetches top-k relevant knowledge nodes using Hybrid (BM25 + Dense) Search."""
+        return self.retriever.retrieve(user_query, top_k=top_k)
 
-        if min_distance > threshold:
-            return {
-                "status": "rejected",
-                "is_ood": True,
-                "mahalanobis_distance": round(min_distance, 4),
-                "threshold": round(threshold, 4),
-                "message": "Out-of-Distribution image detected. The photo does not appear to be a BSF life stage."
-            }
+    def run_vision_inference(self, image_path):
+        """Processes image with SigLIP + OOD detector."""
+        start_time = time.perf_counter()
+        image = Image.open(image_path).convert("RGB")
+        inputs = self.siglip_processor(images=image, return_tensors="pt").to(self.device)
 
-        # Neural Classification
         with torch.no_grad():
-            logits = self.classifier(norm_emb.to(self.device))
-            probabilities = torch.softmax(logits, dim=-1).cpu().squeeze().numpy()
+            outputs = self.vision_model.backbone(pixel_values=inputs["pixel_values"])
+            pooled_emb = outputs.pooler_output.cpu().numpy().squeeze(0)
+            logits = self.vision_model.classifier(outputs.pooler_output)
+            probs = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()
 
-        pred_idx = int(np.argmax(probabilities))
-        pred_label = self.idx_to_class[pred_idx]
-        confidence = float(probabilities[pred_idx])
+        pred_idx = int(np.argmax(probs))
+        pred_label = CLASSES[pred_idx]
+        confidence = float(probs[pred_idx]) * 100.0
 
-        display_info = STAGE_DISPLAY_MAP.get(pred_label, {
-            "title": pred_label,
-            "desc": "Standard Black Soldier Fly management principles apply."
-        })
+        is_ood = False
+        if self.ood_detector:
+            mean = self.ood_detector["class_means"][pred_idx]
+            precision = self.ood_detector["precision_matrix"]
+            diff = pooled_emb - mean
+            dist = np.sqrt(diff.T @ precision @ diff)
+            if dist > self.ood_detector["threshold"]:
+                is_ood = True
+
+        latency_ms = (time.perf_counter() - start_time) * 1000
 
         return {
-            "status": "success",
-            "is_ood": False,
-            "predicted_stage": pred_label,
-            "display_title": display_info["title"],
-            "stage_guide": display_info["desc"],
-            "confidence": round(confidence * 100, 2),
-            "mahalanobis_distance": round(min_distance, 4)
+            "label": pred_label,
+            "confidence": confidence,
+            "is_ood": is_ood,
+            "latency_ms": latency_ms
         }
+    
+    def stream_chat(self, history_messages, active_image=None, vision_meta=None, user_query=""):
+        """Streams multi-turn chat responses using RAG context, vision metadata, and Qwen generation."""
+        rag_context = self.retrieve_rag_context(user_query, top_k=5)
 
-    def stream_integrated_response(self, user_query: str, image_info: dict = None) -> str:
-        """Injects vector RAG knowledge, vision analysis, and session history into Qwen generation stream."""
-        rag_context = retrieve_relevant_context(user_query, top_k=3)
-
-        system_content = (
-            "You are Foggy, an expert AI assistant specializing in Black Soldier Fly (BSF) farming.\n"
-            "MANDATE: Do not claim you cannot process photos. An integrated vision core pre-analyzes uploaded photos for you.\n\n"
-            "OUT-OF-SCOPE PROTOCOL:\n"
-            "If asked non-BSF questions:\n"
-            "1. State you are Foggy, a BSF specialist.\n"
-            "2. Identify the topic.\n"
-            "3. Provide a clear, complete answer.\n\n"
-            "IN-SCOPE BSF PROTOCOL:\n"
-            "Deliver practical, high-value guidance in clear farmer-friendly language."
+        system_instruction = (
+            "You are Foggy, a precision Black Soldier Fly farming AI assistant. "
+            "Use the verified local dynamic context provided to give precise operational advice. "
+            "Do NOT issue tool calls or use XML tool tags. Speak directly to the user in clean text. "
+            "Provide complete, concise responses. If using numbered points, ensure every point has content—do not leave empty or incomplete numbered lines."
         )
 
-        context_payload = f"VERIFIED BSF KNOWLEDGE BASE:\n{rag_context}"
+        context_block = f"DYNAMIC LOCAL KNOWLEDGE NODES:\n{rag_context}"
+        if vision_meta and active_image is not None:
+            context_block += (
+                f"\n\nLIVE SIGLIP CLASSIFICATION: Image classified as '{vision_meta['label']}' "
+                f"with {vision_meta['confidence']:.2f}% confidence. (Out-Of-Domain: {vision_meta['is_ood']})"
+            )
 
-        if image_info:
-            if image_info.get("is_ood"):
-                context_payload += (
-                    f"\n\nVISUAL ANALYSIS RESULT: OUT-OF-DISTRIBUTION REJECTION\n"
-                    f"- Distance: {image_info['mahalanobis_distance']} (Threshold: {image_info['threshold']})\n"
-                    f"- Action: Inform the user that the image is not recognized as a BSF stage."
-                )
-            elif image_info.get("status") == "success":
-                context_payload += (
-                    f"\n\nVISUAL ANALYSIS RESULT (VERIFIED CLASSIFICATION):\n"
-                    f"- Identified Stage: {image_info['display_title']}\n"
-                    f"- Model Confidence: {image_info['confidence']}%\n"
-                    f"- Stage Guidelines: {image_info['stage_guide']}\n"
-                    f"INSTRUCTION: Treat this identified stage as ground truth and direct your answers to it."
-                )
+        prompt = f"<|im_start|>system\n{system_instruction}\n\n{context_block}<|im_end|>\n"
 
-        messages = [{"role": "system", "content": f"{system_content}\n\n{context_payload}"}]
+        for idx, msg in enumerate(history_messages):
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user" and active_image is not None and idx == len(history_messages) - 1:
+                prompt += f"<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>{content}<|im_end|>\n<|im_start|>assistant\n"
+            else:
+                prompt += f"<|im_start|>{role}\n{content}<|im_end|>\n"
+                if idx == len(history_messages) - 1 and role == "user":
+                    prompt += "<|im_start|>assistant\n"
 
-        # Inject session context (up to max_history_turns)
-        for turn in self.history[-self.max_history_turns:]:
-            messages.append(turn)
+        inputs = self.qwen_processor(
+            text=[prompt],
+            images=[[active_image]] if active_image else None,
+            padding=True,
+            return_tensors="pt"
+        ).to(self.device)
 
-        messages.append({"role": "user", "content": user_query if user_query else "Analyze this BSF image."})
+        prompt_len = inputs["input_ids"].shape[1]
 
-        # Tokenize and stream
-        tokenizer = self.processor.tokenizer
-        streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+        class StopOnSubstring(StoppingCriteria):
+            def __init__(self, tokenizer, stop_string, prompt_len):
+                self.tokenizer = tokenizer
+                self.stop_string = stop_string
+                self.prompt_len = prompt_len
+            def __call__(self, input_ids, scores, **kwargs):
+                text = self.tokenizer.decode(input_ids[0][self.prompt_len:], skip_special_tokens=True)
+                return self.stop_string in text
 
-        prompt_text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self.processor(text=[prompt_text], return_tensors="pt").to(self.device)
+        stopping_criteria = StoppingCriteriaList([
+            StopOnSubstring(self.qwen_processor.tokenizer, "<tool_call>", prompt_len)
+        ])
 
+        streamer = TextIteratorStreamer(self.qwen_processor.tokenizer, skip_prompt=True, skip_special_tokens=True)
+
+        # Register <|im_end|> as a real stop token, alongside the default EOS
+        im_end_id = self.qwen_processor.tokenizer.convert_tokens_to_ids("<|im_end|>")
+        eos_ids = [im_end_id]
+        default_eos = self.qwen_processor.tokenizer.eos_token_id
+        if default_eos is not None and default_eos != im_end_id:
+            eos_ids.append(default_eos)
+
+        # Generation Kwargs with repetition control
         generation_kwargs = dict(
             **inputs,
             streamer=streamer,
-            max_new_tokens=1024,
-            temperature=0.2,
-            do_sample=True
-        )
+            max_new_tokens=600,
+            temperature=0.7,           # Standard temperature for clear sampling
+            top_p=0.85,                # Truncates tail probability artifacts
+            repetition_penalty=1.1,    # Gentle penalty (prevents loops without killing syntax)
+            eos_token_id=eos_ids,       # <-- now stops on <|im_end|> too
+            pad_token_id=self.qwen_processor.tokenizer.pad_token_id,
+            stopping_criteria=stopping_criteria
+       )
 
-        thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
+        thread = Thread(target=self.qwen_model.generate, kwargs=generation_kwargs)
         thread.start()
 
-        full_response = ""
+        raw_streamed_text = ""
+        token_count = 0
+        start_time = time.perf_counter()
+
         for new_text in streamer:
-            sys.stdout.write(new_text)
+            raw_streamed_text += new_text
+            
+            clean_chunk = re.sub(r'spepulation\.\s*|speculation\.\s*|\*?angstrom\*?', '', new_text, flags=re.IGNORECASE)
+            clean_chunk = clean_chunk.replace("<tool_call>", "").replace("</tool_call>", "")
+            
+            sys.stdout.write(clean_chunk)
             sys.stdout.flush()
-            full_response += new_text
+            token_count += 1
 
-        print()
+        thread.join()
+        total_latency = time.perf_counter() - start_time
+        speed = token_count / total_latency if total_latency > 0 else 0.0
 
-        # Update persistent history
-        self.history.append({"role": "user", "content": user_query if user_query else "Uploaded image"})
-        self.history.append({"role": "assistant", "content": full_response.strip()})
+        print(f"\n\n⚡ [Benchmark] Latency: {total_latency:.2f}s | Tokens: {token_count} | Speed: {speed:.2f} tok/s")
 
-        return full_response.strip()
+        # Post-process full response to remove artifacts and empty orphan numbers
+        full_response = re.sub(
+            r'(\s*[\d_.\-*]*\s*\(?_?This message was generated.*|\/DoNotLetYour\/.*|The\'Black\'c\'solution.*|<tool_call>.*)',
+            '',
+            raw_streamed_text,
+            flags=re.IGNORECASE | re.DOTALL
+        )
+        
+        # Remove orphaned list numbers followed by empty lines (e.g. "4.\n\n")
+        full_response = re.sub(r'^\s*\d+\.\s*$', '', full_response, flags=re.MULTILINE)
+        full_response = re.sub(r'\n{3,}', '\n\n', full_response)
+        full_response = re.sub(r'spepulation\.\s*|speculation\.\s*|\*?angstrom\*?', '', full_response, flags=re.IGNORECASE).strip()
 
+        return full_response
 
+    
 # ==========================================
-# INTERACTIVE TERMINAL LOOP
+# INTERACTIVE APPLICATION LOOP
 # ==========================================
 if __name__ == "__main__":
-    engine = FoggyBSFEngine()
-    print("\n🌱 Foggy Multi-Modal Core Active. Type 'exit' to quit or 'clear' to reset history.\n")
+    engine = FoggyBrainEngine()
+
+    print("=" * 68)
+    print(" 🌱 Foggy Brain Multi-Modal Core Active")
+    print(" Slash Commands:")
+    print("  - /image <file_path>  : Load active image (e.g. /image test.jpeg)")
+    print("  - /clear_image       : Clear active image (switch to text-only)")
+    print("  - /index             : View stored RAG knowledge count")
+    print("  - /clear or new      : Reset conversation history")
+    print("  - /stats             : Show session and memory metrics")
+    print("  - exit or quit       : Exit session")
+    print("=" * 68 + "\n")
+
+    conversation_history = []
+    active_image = None
+    active_image_path = None
+    vision_meta = None
 
     while True:
         try:
-            raw_input = input("You (format: '<image_path> <prompt>' or just prompt): ")
+            status_tag = f"[{Path(active_image_path).name}]" if active_image_path else "[Text-Only]"
+            user_input = input(f"\nYou {status_tag} > ").strip()
 
-            if raw_input.strip().lower() == "exit":
+            if not user_input:
+                continue
+
+            raw_input = user_input.strip()
+            lower_input = raw_input.lower()
+
+            # Command Handlers
+            if lower_input in ["exit", "quit"]:
                 break
 
-            if raw_input.strip().lower() == "clear":
-                engine.history = []
-                print("🧹 Session context cleared.")
+            clear_image_triggers = [
+                "/clear_image", "/clear-image", "/clean-image", "/clean_image",
+                "/remove_image", "/remove-image", "clear image", "remove image", "clear_image"
+            ]
+            if any(lower_input == cmd for cmd in clear_image_triggers) or lower_input.startswith("clear_dataset"):
+                active_image = None
+                active_image_path = None
+                vision_meta = None
+                print("🗑️ Active image cleared. Switched to text-only mode.")
                 continue
 
-            if not raw_input.strip():
+            if lower_input in ["/clear", "/reset", "new"]:
+                print("🔄 Resetting conversation history...")
+                conversation_history = []
+                active_image = None
+                active_image_path = None
+                vision_meta = None
                 continue
 
-            # Extract image filename pattern (e.g., testimage1.jpeg, photo.png)
-            image_match = re.search(r'\b[\w\-\\./]+\.(?:jpeg|jpg|png)\b', raw_input, re.IGNORECASE)
-            image_info = None
-            user_text_query = raw_input
+            if lower_input == "/index":
+                print(f"📚 RAG Index contains {len(engine.retriever.chunks)} knowledge nodes.")
+                continue
+
+            if lower_input.startswith("/image"):
+                parts = user_input.split(maxsplit=1)
+                if len(parts) > 1 and parts[1].strip() not in ["<path>", "<path_to_image>"]:
+                    img_path = parts[1].strip()
+                    if os.path.exists(img_path):
+                        active_image_path = img_path
+                        active_image = Image.open(active_image_path).convert("RGB")
+                        print(f"🖼️ Image loaded: {active_image_path}")
+                        print("[SYSTEM: Running SigLIP 2 Vision Pass...]")
+                        vision_meta = engine.run_vision_inference(active_image_path)
+                        print(f"🎯 SigLIP Classification: {vision_meta['label']} ({vision_meta['confidence']:.2f}%)")
+                        print(f"📌 Out-of-Domain: {vision_meta['is_ood']} | Latency: {vision_meta['latency_ms']:.2f}ms")
+
+                        if vision_meta['is_ood']:
+                            print("\n⚠️ [OOD Guardrail Intercept]: Uploaded image is out-of-domain.")
+                            print("💡 Please provide a valid BSF stage image to receive advice.")
+                            active_image = None
+                            active_image_path = None
+                            vision_meta = None
+                    else:
+                        print(f"❌ Error: File '{img_path}' not found on disk.")
+                else:
+                    print("⚠️ Example usage: /image dataset/1_eggs/eggs1.jpeg")
+                continue
+
+            if lower_input == "/stats":
+                allocated = torch.cuda.memory_allocated() / (1024 ** 2) if torch.cuda.is_available() else 0
+                print(f"📊 Memory Allocated: {allocated:.2f} MB")
+                print(f"💬 Conversation Turns: {len(conversation_history) // 2}")
+                print(f"🖼️ Active Image: {active_image_path or 'None'}")
+                print(f"📚 RAG Chunks: {len(engine.retriever.chunks)}")
+                continue
+
+            # Command Guardrail
+            if raw_input.startswith("/"):
+                print(f"❌ Unrecognized command '{raw_input}'.")
+                print("💡 Available commands: /image <path>, /clear_image, /index, /clear, /stats")
+                continue
+
+            # Inline Image Check
+            image_match = re.search(r'\b[\w/\\.-]+\.(?:jpeg|jpg|png)\b', user_input, re.IGNORECASE)
+            image_failed = False
+            is_ood_blocked = False
 
             if image_match:
                 img_path = image_match.group(0)
                 if os.path.exists(img_path):
-                    print(f"🔍 [SYSTEM: Running SigLIP 2 + OOD check on '{img_path}'...]")
-                    image_info = engine.analyze_image(img_path)
-                    user_text_query = raw_input.replace(img_path, "").strip()
+                    active_image_path = img_path
+                    active_image = Image.open(active_image_path).convert("RGB")
+                    print(f"\n[SYSTEM: Analyzing image '{active_image_path}' via SigLIP 2 Classifier...]")
+                    vision_meta = engine.run_vision_inference(active_image_path)
+                    print(f"🎯 SigLIP Classification: {vision_meta['label']} ({vision_meta['confidence']:.2f}%)")
+                    print(f"📌 Out-of-Domain: {vision_meta['is_ood']} | Latency: {vision_meta['latency_ms']:.2f}ms")
 
-                    if image_info.get("status") == "success":
-                        print(f"🎯 Classifier Output: {image_info['display_title']} ({image_info['confidence']}% confidence)")
-                    elif image_info.get("is_ood"):
-                        print(f"⚠️ OOD Defense: Image rejected (Distance: {image_info['mahalanobis_distance']})")
+                    user_input = user_input.replace(img_path, "").strip()
+
+                    if vision_meta['is_ood']:
+                        print("\n⚠️ [OOD Guardrail Intercept]: Uploaded image does not belong to a recognized BSF life-cycle stage.")
+                        print("💡 Please provide a clear BSF image to generate advice.")
+                        is_ood_blocked = True
+                        active_image = None
+                        active_image_path = None
+                        vision_meta = None
                 else:
-                    print(f"⚠️ Warning: Image '{img_path}' was not found on disk.")
+                    print(f"❌ Aborted: Specified image file '{img_path}' was not found on disk.")
+                    image_failed = True
+
+            if image_failed or is_ood_blocked:
+                continue
+
+            conversation_history.append({"role": "user", "content": user_input})
 
             print("\nFoggy: ", end="")
             sys.stdout.flush()
 
-            engine.stream_integrated_response(user_query=user_text_query, image_info=image_info)
-            print("\n" + "━" * 60 + "\n")
+            assistant_reply = engine.stream_chat(
+                history_messages=conversation_history,
+                active_image=active_image,
+                vision_meta=vision_meta,
+                user_query=user_input
+            )
+
+            conversation_history.append({"role": "assistant", "content": assistant_reply})
+            print("-" * 68)
 
         except KeyboardInterrupt:
-            print("\nExiting Foggy Engine...")
+            print("\nSession terminated by user.")
             break
+        except Exception as e:
+            print(f"\n❌ Error during execution: {e}")
