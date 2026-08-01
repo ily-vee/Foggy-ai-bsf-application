@@ -16,3 +16,11 @@ dataset/
 *.gguf
 models/qwen_bsf_qlora/
 models/siglip_bsf_lora/
+
+# Additional model weights & pickled artifacts
+*.pkl
+*.pt
+
+# Local datasets and images
+labeled_photos/
+*.jsonl

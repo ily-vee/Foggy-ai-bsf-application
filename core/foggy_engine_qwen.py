@@ -20,7 +20,7 @@ for path in [PROJECT_ROOT, CORE_DIR / "finetune"]:
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-from model_siglip import SiglipBSFClassifier
+from core.finetune.model_siglip import SiglipBSFClassifier
 from core.rag.retriever import HybridRetriever
 
 from transformers import (
@@ -149,10 +149,15 @@ class FoggyBrainEngine:
         rag_context = self.retrieve_rag_context(user_query, top_k=5)
 
         system_instruction = (
-            "You are Foggy, a precision Black Soldier Fly farming AI assistant. "
-            "Use the verified local dynamic context provided to give precise operational advice. "
+            "You are Foggy, a Black Soldier Fly farming AI assistant. "
+            "Use the verified local knowledge provided to give thorough, actionable advice. "
+            "When giving advice, walk the farmer through concrete steps — what to do, "
+            "in what order, and what to watch out for — rather than a one-line answer."
             "Do NOT issue tool calls or use XML tool tags. Speak directly to the user in clean text. "
-            "Provide complete, concise responses. If using numbered points, ensure every point has content—do not leave empty or incomplete numbered lines."
+            "Provide complete, concise responses. If using numbered points, ensure every point has content—do not leave empty or incomplete numbered lines. "
+            "There is no required number of points — stop the list as soon as you have covered the real, "
+            "useful advice. Do not add a final point just to round out the count, and never continue "
+            "a list past the point where you have genuine content to add."
         )
 
         context_block = f"DYNAMIC LOCAL KNOWLEDGE NODES:\n{rag_context}"
@@ -192,8 +197,68 @@ class FoggyBrainEngine:
                 text = self.tokenizer.decode(input_ids[0][self.prompt_len:], skip_special_tokens=True)
                 return self.stop_string in text
 
+        class StopOnRepetition(StoppingCriteria):
+            """Generic loop-breaker: stops as soon as ANY short word-sequence
+            repeats too many times in a row. This catches whatever glitch
+            pattern shows up next instead of needing a new literal string
+            added every time a new artifact appears."""
+            def __init__(self, tokenizer, prompt_len, ngram_size=4, max_repeats=3):
+                self.tokenizer = tokenizer
+                self.prompt_len = prompt_len
+                self.ngram_size = ngram_size
+                self.max_repeats = max_repeats
+
+            def __call__(self, input_ids, scores, **kwargs):
+                text = self.tokenizer.decode(input_ids[0][self.prompt_len:], skip_special_tokens=True)
+                words = text.split()
+                n = self.ngram_size
+                if len(words) < n * self.max_repeats:
+                    return False
+                last_ngram = words[-n:]
+                repeats = 1
+                i = len(words) - n
+                while i - n >= 0 and words[i - n:i] == last_ngram:
+                    repeats += 1
+                    i -= n
+                    if repeats >= self.max_repeats:
+                        return True
+                return False
+
+        class StopOnForeignScript(StoppingCriteria):
+            """Stops generation the instant it drifts into a script the
+            engine never intends to produce (Arabic, CJK, Cyrillic, etc.)
+            mixed into what should be plain English/Latin-script text.
+            This is a strong, cheap signal of degenerate/low-confidence
+            sampling -- the kind that produced 'إبدv' after point 6."""
+            FOREIGN_RANGES = [
+                (0x0600, 0x06FF),   # Arabic
+                (0x0750, 0x077F),   # Arabic Supplement
+                (0x4E00, 0x9FFF),   # CJK Unified Ideographs
+                (0x3040, 0x30FF),   # Hiragana/Katakana
+                (0x0400, 0x04FF),   # Cyrillic
+                (0x0590, 0x05FF),   # Hebrew
+            ]
+
+            def __init__(self, tokenizer, prompt_len):
+                self.tokenizer = tokenizer
+                self.prompt_len = prompt_len
+
+            def __call__(self, input_ids, scores, **kwargs):
+                text = self.tokenizer.decode(input_ids[0][self.prompt_len:], skip_special_tokens=True)
+                tail = text[-20:]  # only need to check the most recent chunk
+                for ch in tail:
+                    cp = ord(ch)
+                    for start, end in self.FOREIGN_RANGES:
+                        if start <= cp <= end:
+                            return True
+                return False
+
         stopping_criteria = StoppingCriteriaList([
-            StopOnSubstring(self.qwen_processor.tokenizer, "<tool_call>", prompt_len)
+            StopOnSubstring(self.qwen_processor.tokenizer, "<tool_call>", prompt_len),
+            StopOnSubstring(self.qwen_processor.tokenizer, "speculation.", prompt_len),
+            StopOnSubstring(self.qwen_processor.tokenizer, "angstrom", prompt_len),
+            StopOnRepetition(self.qwen_processor.tokenizer, prompt_len, ngram_size=4, max_repeats=3),
+            StopOnForeignScript(self.qwen_processor.tokenizer, prompt_len),
         ])
 
         streamer = TextIteratorStreamer(self.qwen_processor.tokenizer, skip_prompt=True, skip_special_tokens=True)
@@ -212,7 +277,7 @@ class FoggyBrainEngine:
             max_new_tokens=600,
             temperature=0.7,           # Standard temperature for clear sampling
             top_p=0.85,                # Truncates tail probability artifacts
-            repetition_penalty=1.1,    # Gentle penalty (prevents loops without killing syntax)
+            repetition_penalty=1.05,    # Gentle penalty (prevents loops without killing syntax)
             eos_token_id=eos_ids,       # <-- now stops on <|im_end|> too
             pad_token_id=self.qwen_processor.tokenizer.pad_token_id,
             stopping_criteria=stopping_criteria
@@ -251,6 +316,10 @@ class FoggyBrainEngine:
         
         # Remove orphaned list numbers followed by empty lines (e.g. "4.\n\n")
         full_response = re.sub(r'^\s*\d+\.\s*$', '', full_response, flags=re.MULTILINE)
+        # Remove a final trailing numbered line that is mostly non-Latin/garbled
+        # characters (e.g. "6.إبدv.") rather than real words -- a leftover
+        # fragment from the moment the StopOnForeignScript criteria fired.
+        full_response = re.sub(r'\n\s*\d+\.\s*[^\sA-Za-z0-9]{0,3}[^\x00-\x7F]+.*$', '', full_response, flags=re.DOTALL)
         full_response = re.sub(r'\n{3,}', '\n\n', full_response)
         full_response = re.sub(r'spepulation\.\s*|speculation\.\s*|\*?angstrom\*?', '', full_response, flags=re.IGNORECASE).strip()
 
