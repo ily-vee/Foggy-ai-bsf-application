@@ -1,20 +1,38 @@
-# Deep Learning & Vision Backends
-torch
-torchvision
-transformers
-accelerate
-huggingface_hub
+# requirements.txt
+#
+# Versions marked "confirmed" were seen directly in your install logs during
+# this project and are pinned exactly. Versions marked "unconfirmed" are
+# reasonable pins but were never actually observed running in your
+# environment — before treating this as final, run:
+#
+#   pip freeze > requirements.lock.txt
+#
+# on the machine that's actually running this successfully, and use that as
+# the real source of truth. This file is a starting point, not a guarantee.
 
-# Core ML & Numerics
-numpy
-scikit-learn
-scipy
+# --- Core ML stack (unconfirmed exact versions — verify with pip freeze) ---
+torch>=2.1.0
+transformers>=4.44.0
+peft>=0.11.0
+accelerate>=0.30.0
+pillow>=10.0.0
+numpy>=1.26.0,<2.1.0   # rank_bm25 compatibility shim in retriever.py assumes numpy 2.0-era API changes
 
-# Image Processing & Utilities
-Pillow
-requests
-tqdm
-jinja2
+# --- RAG / retrieval ---
+sentence-transformers>=2.7.0
+rank_bm25>=0.2.2
+pypdf>=4.2.0
 
-# App Backend / Server (if hosting local APIs/chats)
-flask
+# --- Audio transcription (confirmed from install logs) ---
+faster-whisper==1.2.1
+ctranslate2==4.8.1
+onnxruntime==1.23.2
+coloredlogs==15.0.1
+humanfriendly==10.0
+flatbuffers==25.12.19
+
+# --- Webhook/serving layer, if the ML side hosts its own test endpoint ---
+flask==3.1.3
+itsdangerous==2.2.0
+blinker==1.9.0
+requests>=2.31.0

@@ -24,3 +24,4 @@ models/siglip_bsf_lora/
 # Local datasets and images
 labeled_photos/
 *.jsonl
+models/

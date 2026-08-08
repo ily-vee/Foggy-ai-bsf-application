@@ -21,7 +21,7 @@ for path in [PROJECT_ROOT, CORE_DIR / "finetune"]:
         sys.path.insert(0, str(path))
 
 from core.finetune.model_siglip import SiglipBSFClassifier
-from core.rag.retriever import HybridRetriever
+from core.retriever import HybridRetriever
 
 from transformers import (
     SiglipImageProcessor,

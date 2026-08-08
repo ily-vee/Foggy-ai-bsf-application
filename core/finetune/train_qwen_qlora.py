@@ -13,7 +13,7 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 
 MODEL_ID = "Qwen/Qwen2.5-3B-Instruct"  # Text-only model
-DATASET_PATH = Path("dataset_text_v2.jsonl")
+DATASET_PATH = Path("dataset_foggy_v1.jsonl")
 OUTPUT_DIR = Path("models/qwen_bsf_qlora")
 
 def train_qwen_qlora():
