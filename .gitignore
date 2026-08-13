@@ -25,3 +25,6 @@ models/siglip_bsf_lora/
 labeled_photos/
 *.jsonl
 models/
+llama.cpp/
+*.gguf
+node_package/
