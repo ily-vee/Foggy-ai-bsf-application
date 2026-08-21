@@ -77,7 +77,7 @@ SIGLIP_BASE = "google/siglip2-base-patch16-224"
 QWEN_BASE = "Qwen/Qwen2.5-VL-3B-Instruct"
 
 SIGLIP2_DIR = "models/siglip2_bsf_lora"
-QWEN_LORA_DIR = "models/qwen_vlm_bsf_qlora"
+QWEN_LORA_DIR = "models/qwen_vlm_bsf_qlora_v2"
 VECTOR_DB_DIR = "foggy_vector_db"
 
 OOD_THRESHOLD = 0.55
