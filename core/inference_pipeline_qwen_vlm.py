@@ -77,7 +77,7 @@ SIGLIP_BASE = "google/siglip2-base-patch16-224"
 QWEN_BASE = "Qwen/Qwen2.5-VL-3B-Instruct"
 
 SIGLIP2_DIR = "models/siglip2_bsf_lora"
-QWEN_LORA_DIR = "models/qwen_vlm_bsf_qlora_v2"
+QWEN_LORA_DIR = "models/qwen_vlm_bsf_qlora_v3"
 VECTOR_DB_DIR = "foggy_vector_db"
 
 OOD_THRESHOLD = 0.55
@@ -124,16 +124,35 @@ QWEN_VL_MAX_PIXELS = 768 * 28 * 28
 MAX_HISTORY_TURNS = 3
 
 # Safety-net regex for citation-style hallucinations. This does NOT fix the
-# root cause (likely citation-formatted text in the QLoRA SFT set) but strips
-# fabricated DOIs/footnotes before they reach the user.
+# root cause (likely citation-formatted text in the QLoRA SFT set, or figure/
+# table captions surviving PDF ingestion into the retrieved reference chunks
+# themselves) but strips fabricated DOIs/footnotes and source-manual figure
+# references before they reach the user -- a farmer never sees the manual,
+# so "as shown in Figure 4" is meaningless noise to them regardless of
+# whether it came from training data or a live-retrieved chunk.
 CITATION_PATTERNS = [
     r"\[cite:\s*[^\]]*\]",       # [cite: 10.1007/...]
     r"\[\^cite:\d+\]",           # [^cite:1]
     r"\[cite-link\]",           # [cite-link]
     r"\[\^\d+\]",                # [^1]
     r"\(Source:\s*[^)]*\)",     # (Source: manual.pdf)
+    # Figure/table/section callouts, connector-phrase form first so it wins
+    # the alternation and swallows the leading/trailing comma or parens with
+    # it -- e.g. ", as shown in Figure 4," or "(see Table 2)". Listed before
+    # the bare fallback below since Python's re tries alternatives in order
+    # at each position.
+    # multi-figure lists repeat the keyword ("Figure 5 and Figure 6") as
+    # often as they omit it ("Figure 5 and 6") -- the keyword is optional
+    # in the continuation group so both forms match as ONE span, and a
+    # trailing "of the reference/manual/document" is swallowed too so it
+    # doesn't get left dangling on its own.
+    r"[,;]?\s*\(?(?:as shown in|shown in|see|refer to|per|according to)\s+"
+    r"(?:Figures?|Tables?|Sections?)\s+\d+[A-Za-z]?"
+    r"(?:\s*(?:[-–—]|to|and|&|,)\s*(?:Figures?|Tables?|Sections?)?\s*\d+[A-Za-z]?)*"
+    r"(?:\s+of\s+the\s+\w+)?\)?,?",
+    r"\(?\b(?:Figures?|Tables?|Sections?)\s+\d+[A-Za-z]?\)?",  # bare "Figure 4"
 ]
-CITATION_RE = re.compile("|".join(CITATION_PATTERNS))
+CITATION_RE = re.compile("|".join(CITATION_PATTERNS), re.IGNORECASE)
 
 RAG_KNOWLEDGE_BASE = {
     "egg": "Optimal temp: 27-30°C. Moisture: >60% RH. Eggs must sit in dry crevices above feed. Hatching time: ~4 days.",
@@ -687,11 +706,16 @@ class FoggyEngine:
         return None
 
     def _sanitize(self, text: str) -> str:
-        """Strip hallucinated citation/footnote markup as a safety net."""
+        """Strip hallucinated citation/footnote markup and source-manual
+        figure/table/section references as a safety net."""
         cleaned = CITATION_RE.sub("", text)
         # Collapse any double spaces left behind by removed markup.
         cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
-        return cleaned
+        # Clean up orphaned punctuation left behind by removed markup, e.g.
+        # "collect the eggs, ." -> "collect the eggs." or a stray double comma.
+        cleaned = re.sub(r",\s*,", ",", cleaned)
+        cleaned = re.sub(r"\s+([.,!?])", r"\1", cleaned)
+        return cleaned.strip()
 
     @staticmethod
     def _trim(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
