@@ -1098,7 +1098,18 @@ class FoggyEngine:
     def generate_stream(self, image_path: Optional[str], user_query: str):
         """Terminal/CLI wrapper: prints tokens live as they arrive, then
         returns the full text too. Kept so main() below doesn't need to
-        change at all."""
+        change at all.
+
+        NOTE: live-streamed tokens are printed as RAW model output, before
+        _sanitize() ever runs -- sanitization needs the full response
+        assembled first, so it structurally cannot apply mid-stream. That
+        means this live view can show citation/figure-reference text that
+        a real caller (handle_message(), the production path) would never
+        actually receive, since that path returns the sanitized string.
+        `response` below IS the sanitized text -- it's printed again,
+        labeled, after the live stream finishes, so testing via this CLI
+        reflects what a farmer would actually get rather than giving a
+        false read on whether sanitization is working."""
         token_count = {"n": 0}
 
         def on_token(tok):
@@ -1112,13 +1123,14 @@ class FoggyEngine:
         self._on_token = None
         self._on_stage_detected = None
 
-        # OOD/error responses return before any token streaming happens, so
-        # they'd otherwise never actually get printed — print them directly
-        # in that case instead of relying on the (never-fired) token hook.
         if token_count["n"] == 0 and response:
             print(response, end="")
 
         print("\n")
+
+        if token_count["n"] > 0 and response:
+            print(f"[sanitized -- what a real caller actually receives]:\n{response}\n")
+
         return response
 
 
